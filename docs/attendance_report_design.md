@@ -1,7 +1,7 @@
 # Attendance Report Filtering and Search
 
 Owner: Zakia Binta Syeed (ZBS)  
-Branch: `feature/attendance-report-filtering`
+Branch: `attendance-report-filtering-by-zakia`
 
 ## User story
 
@@ -70,4 +70,18 @@ aggregation, and return the latest corrected record values.
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest tests/test_reports.py -v
+ruff check .
+mypy app
+sphinx-build -W -b html docs docs/_build/html
 ```
+
+## Run API documentation
+
+Start the FastAPI development server:
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+Open Swagger UI at `http://127.0.0.1:8000/docs` or ReDoc at
+`http://127.0.0.1:8000/redoc`.
