@@ -32,6 +32,13 @@ class AttendanceReportRepository(Protocol):
         self,
         filters: AttendanceReportFilters,
     ) -> list[AttendanceReportRow]:
-        """Return filtered rows containing the latest corrections."""
+        """Return filtered rows containing the latest corrections.
+
+        Args:
+            filters: Validated report filters.
+
+        Returns:
+            Effective attendance rows matching all selected filters.
+        """
 
         ...

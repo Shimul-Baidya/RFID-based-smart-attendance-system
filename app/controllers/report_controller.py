@@ -12,7 +12,7 @@ from app.schemas.report_schema import (
 )
 from app.services.report_service import AttendanceReportService
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(prefix="/reports", tags=["Reports"])
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,7 +24,14 @@ class ReportUser:
 
 
 def get_current_report_user() -> ReportUser:
-    """Temporary seam for Shimul's shared authentication dependency."""
+    """Provide the authenticated user through the shared authentication layer.
+
+    Returns:
+        The authenticated user's minimum report-access details.
+
+    Raises:
+        HTTPException: Until the shared authentication dependency is connected.
+    """
 
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -33,7 +40,14 @@ def get_current_report_user() -> ReportUser:
 
 
 def get_attendance_report_repository() -> AttendanceReportRepository:
-    """Temporary seam for the shared PostgreSQL repository implementation."""
+    """Provide the shared PostgreSQL attendance-report repository.
+
+    Returns:
+        The configured attendance-report repository.
+
+    Raises:
+        HTTPException: Until the shared repository is connected.
+    """
 
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -41,7 +55,12 @@ def get_attendance_report_repository() -> AttendanceReportRepository:
     )
 
 
-@router.get("/attendance", response_model=AttendanceReportResponse)
+@router.get(
+    "/attendance",
+    response_model=AttendanceReportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Filter and search attendance reports",
+)
 async def get_attendance_report(
     filters: Annotated[AttendanceReportFilters, Depends()],
     current_user: Annotated[ReportUser, Depends(get_current_report_user)],
@@ -50,7 +69,19 @@ async def get_attendance_report(
         Depends(get_attendance_report_repository),
     ],
 ) -> AttendanceReportResponse:
-    """Generate an attendance report for an authorized teacher or admin."""
+    """Generate an attendance report for an authorized teacher or admin.
+
+    Args:
+        filters: Validated query parameters for the report search.
+        current_user: User supplied by the authentication dependency.
+        repository: Attendance data-access implementation.
+
+    Returns:
+        A paginated attendance report response.
+
+    Raises:
+        HTTPException: If the authenticated user lacks report permission.
+    """
 
     if current_user.role not in {"teacher", "admin"}:
         raise HTTPException(

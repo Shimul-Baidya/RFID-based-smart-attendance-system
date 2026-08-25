@@ -34,8 +34,21 @@ class AttendanceReportService:
         repository: AttendanceReportRepository,
         low_attendance_threshold: float = DEFAULT_LOW_ATTENDANCE_THRESHOLD,
     ) -> None:
+        """Initialize the report service.
+
+        Args:
+            repository: Data-access implementation for attendance report rows.
+            low_attendance_threshold: Percentage used to identify low
+                attendance.
+
+        Raises:
+            ValueError: If the threshold is outside the inclusive 0-100 range.
+        """
+
         if not 0 <= low_attendance_threshold <= 100:
-            raise ValueError("low_attendance_threshold must be between 0 and 100")
+            raise ValueError(
+                "low_attendance_threshold must be between 0 and 100"
+            )
         self._repository = repository
         self._threshold = low_attendance_threshold
 
@@ -43,7 +56,14 @@ class AttendanceReportService:
         self,
         filters: AttendanceReportFilters,
     ) -> AttendanceReportResponse:
-        """Return the filtered report using corrected attendance values."""
+        """Return the filtered report using corrected attendance values.
+
+        Args:
+            filters: Validated search, date, and pagination filters.
+
+        Returns:
+            A paginated response containing student attendance summaries.
+        """
 
         rows = await self._repository.list_report_rows(filters)
         summaries = self._summarize(rows)
@@ -69,6 +89,15 @@ class AttendanceReportService:
         self,
         rows: list[AttendanceReportRow],
     ) -> list[AttendanceReportItem]:
+        """Aggregate effective attendance rows by student.
+
+        Args:
+            rows: Filtered attendance rows from the repository.
+
+        Returns:
+            Student summaries sorted by institutional student number.
+        """
+
         grouped: dict[int, _StudentSummary] = defaultdict(
             lambda: _StudentSummary(student_number="", student_name="")
         )
@@ -93,7 +122,9 @@ class AttendanceReportService:
                     student_number=summary.student_number,
                     student_name=summary.student_name,
                     total_classes=total_classes,
-                    present=sum(row.status == "present" for row in summary.rows),
+                    present=sum(
+                        row.status == "present" for row in summary.rows
+                    ),
                     absent=sum(row.status == "absent" for row in summary.rows),
                     late=sum(row.status == "late" for row in summary.rows),
                     fractional_attendance=round(
