@@ -23,6 +23,10 @@ class AttendanceReportRow:
     attendance_value: float
     recorded_at: datetime
     modified_at: datetime | None = None
+    department: str = ""
+    batch: int = 0
+    section: str = ""
+    course_id: int = 0
 
 
 class AttendanceReportRepository(Protocol):
@@ -42,3 +46,45 @@ class AttendanceReportRepository(Protocol):
         """
 
         ...
+
+
+class InMemoryAttendanceReportRepository:
+    """Filter attendance rows without requiring the shared database yet."""
+
+    def __init__(self, rows: list[AttendanceReportRow]) -> None:
+        """Store the rows used by the report workflow.
+
+        Args:
+            rows: Effective attendance records available for searching.
+        """
+
+        self._rows = rows
+
+    async def list_report_rows(
+        self,
+        filters: AttendanceReportFilters,
+    ) -> list[AttendanceReportRow]:
+        """Return rows that match every selected report filter.
+
+        Args:
+            filters: Validated department, course, student, and date filters.
+
+        Returns:
+            Matching rows in their original order.
+        """
+
+        return [
+            row
+            for row in self._rows
+            if row.department.casefold() == filters.department.casefold()
+            and row.batch == filters.batch
+            and row.section.casefold() == filters.section.casefold()
+            and row.course_id == filters.course_id
+            and (
+                filters.student_id is None
+                or row.student_id == filters.student_id
+            )
+            and filters.start_date
+            <= row.recorded_at.date()
+            <= filters.end_date
+        ]

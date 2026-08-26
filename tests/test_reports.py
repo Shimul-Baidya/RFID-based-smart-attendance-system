@@ -1,4 +1,4 @@
-"""Unit tests for Zakia's Sprint 1 attendance report contracts."""
+"""Tests for Zakia's attendance report filtering workflow."""
 
 import asyncio
 from collections.abc import Iterator
@@ -14,7 +14,10 @@ from app.controllers.report_controller import (
     get_current_report_user,
 )
 from app.main import app
-from app.repositories.attendance_repository import AttendanceReportRow
+from app.repositories.attendance_repository import (
+    AttendanceReportRow,
+    InMemoryAttendanceReportRepository,
+)
 from app.schemas.report_schema import AttendanceReportFilters
 from app.services.report_service import AttendanceReportService
 
@@ -166,6 +169,104 @@ def test_results_are_paginated() -> None:
     assert response.total_items == 3
     assert response.total_pages == 2
     assert [item.student_id for item in response.items] == [3]
+
+
+def test_repository_returns_only_matching_records() -> None:
+    now = datetime(2026, 8, 20, tzinfo=UTC)
+    rows = [
+        AttendanceReportRow(
+            1,
+            "CSE-001",
+            "Zakia",
+            "present",
+            1.0,
+            now,
+            department="CSE",
+            batch=2023,
+            section="A",
+            course_id=10,
+        ),
+        AttendanceReportRow(
+            2,
+            "CSE-002",
+            "Student Two",
+            "present",
+            1.0,
+            now,
+            department="CSE",
+            batch=2023,
+            section="A",
+            course_id=10,
+        ),
+        AttendanceReportRow(
+            3,
+            "CSE-003",
+            "Old Record",
+            "present",
+            1.0,
+            datetime(2026, 7, 20, tzinfo=UTC),
+            department="CSE",
+            batch=2023,
+            section="A",
+            course_id=10,
+        ),
+    ]
+    repository = InMemoryAttendanceReportRepository(rows)
+
+    result = asyncio.run(repository.list_report_rows(make_filters()))
+
+    searched_result = asyncio.run(
+        repository.list_report_rows(make_filters(student_id=2))
+    )
+
+    assert [row.student_id for row in result] == [1, 2]
+    assert [row.student_id for row in searched_result] == [2]
+
+
+def test_endpoint_returns_filtered_attendance_summary() -> None:
+    now = datetime(2026, 8, 20, tzinfo=UTC)
+    rows = [
+        AttendanceReportRow(
+            1,
+            "CSE-001",
+            "Zakia",
+            "present",
+            1.0,
+            now,
+            department="CSE",
+            batch=2023,
+            section="A",
+            course_id=10,
+        ),
+        AttendanceReportRow(
+            1,
+            "CSE-001",
+            "Zakia",
+            "absent",
+            0.0,
+            now,
+            department="CSE",
+            batch=2023,
+            section="A",
+            course_id=10,
+        ),
+    ]
+    app.dependency_overrides[get_current_report_user] = lambda: ReportUser(
+        id=1,
+        role="teacher",
+    )
+    app.dependency_overrides[get_attendance_report_repository] = lambda: (
+        InMemoryAttendanceReportRepository(rows)
+    )
+
+    response = asyncio.run(request_report())
+
+    assert response.status_code == 200
+    report = response.json()
+    assert report["total_items"] == 1
+    assert report["items"][0]["present"] == 1
+    assert report["items"][0]["absent"] == 1
+    assert report["items"][0]["attendance_percentage"] == 50.0
 
 
 def test_student_cannot_access_report_endpoint() -> None:
