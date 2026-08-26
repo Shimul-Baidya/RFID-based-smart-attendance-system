@@ -2,7 +2,7 @@
 
 Owner: Zakia Binta Syeed (ZBS)  
 Branch: `attendance-report-filtering-by-zakia`
-Status: **In Progress — Scrum 1 design increment**
+Status: **In Progress — Scrum 2 core workflow**
 
 ## Current progress
 
@@ -15,10 +15,18 @@ Completed in Scrum 1:
 - Added a repository interface for the shared attendance data.
 - Added initial automated tests and API documentation.
 
+Completed in Scrum 2:
+
+- Implemented filtering by department, batch, section, course, and student.
+- Implemented inclusive start-date and end-date filtering.
+- Connected the repository, service, and controller success workflow.
+- Verified attendance totals, percentage, and filtered API responses.
+- Added automated tests for repository filtering and the complete API flow.
+
 Still in progress:
 
 - Connect the shared PostgreSQL database session and models.
-- Implement database filtering in the concrete repository.
+- Replace the temporary in-memory repository with PostgreSQL queries.
 - Replace the temporary authentication dependency.
 - Confirm the late-attendance value and attendance threshold with the team.
 - Run integration tests using shared attendance records.

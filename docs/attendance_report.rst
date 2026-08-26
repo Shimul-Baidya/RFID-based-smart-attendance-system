@@ -24,3 +24,10 @@ included.
 
 The complete design, schema mapping, and dependency notes are available in
 ``attendance_report_design.md``.
+
+Scrum 2 Increment
+-----------------
+
+The core successful workflow now filters effective attendance rows by
+department, batch, section, course, optional student, and inclusive date range.
+The service then groups the matching rows and returns paginated summaries.
