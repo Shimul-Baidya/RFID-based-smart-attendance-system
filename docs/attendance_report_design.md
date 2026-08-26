@@ -2,6 +2,27 @@
 
 Owner: Zakia Binta Syeed (ZBS)  
 Branch: `attendance-report-filtering-by-zakia`
+Status: **In Progress — Scrum 1 design increment**
+
+## Current progress
+
+Completed in Scrum 1:
+
+- Reviewed the SRS report requirements.
+- Defined and validated the report filters.
+- Defined the report response fields.
+- Added an initial percentage-calculation prototype.
+- Added a repository interface for the shared attendance data.
+- Added initial automated tests and API documentation.
+
+Still in progress:
+
+- Connect the shared PostgreSQL database session and models.
+- Implement database filtering in the concrete repository.
+- Replace the temporary authentication dependency.
+- Confirm the late-attendance value and attendance threshold with the team.
+- Run integration tests using shared attendance records.
+- Complete review and integration in the later Scrum cycles.
 
 ## User story
 
@@ -10,10 +31,10 @@ so that I can review the required records efficiently.
 
 ## Sprint 1 goal
 
-Define the API contract, validation rules, response fields, calculations, data
-access boundary, and initial automated tests. The concrete database and shared
-authentication adapters will be connected after the owning teammates merge
-those dependencies.
+Define the API contract, validation rules, response fields, an initial
+calculation prototype, the data-access boundary, and initial automated tests.
+The concrete database and shared authentication adapters will be connected
+after the owning teammates merge those dependencies.
 
 ## API contract
 
