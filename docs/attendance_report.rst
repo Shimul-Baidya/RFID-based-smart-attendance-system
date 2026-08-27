@@ -31,3 +31,11 @@ Scrum 2 Increment
 The core successful workflow now filters effective attendance rows by
 department, batch, section, course, optional student, and inclusive date range.
 The service then groups the matching rows and returns paginated summaries.
+
+Scrum 3 Increment
+-----------------
+
+The repository now executes the complete filter query against PostgreSQL using
+an asynchronous SQLAlchemy session. The final schema, unauthenticated and
+unauthorized responses, edge-case tests, and continuous-integration checks are
+included in the feature branch.

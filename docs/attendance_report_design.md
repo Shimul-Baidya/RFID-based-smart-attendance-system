@@ -2,7 +2,7 @@
 
 Owner: Zakia Binta Syeed (ZBS)  
 Branch: `attendance-report-filtering-by-zakia`
-Status: **In Progress — Scrum 2 core workflow**
+Status: **Scrum 3 complete — Ready for review**
 
 ## Current progress
 
@@ -23,26 +23,33 @@ Completed in Scrum 2:
 - Verified attendance totals, percentage, and filtered API responses.
 - Added automated tests for repository filtering and the complete API flow.
 
-Still in progress:
+Completed in Scrum 3:
 
-- Connect the shared PostgreSQL database session and models.
-- Replace the temporary in-memory repository with PostgreSQL queries.
+- Aligned the batch filter with the final `1-100` database constraint.
+- Added the shared asynchronous SQLAlchemy database session.
+- Implemented the PostgreSQL query for all report filters.
+- Added explicit unauthenticated and unauthorized responses.
+- Covered invalid, empty, corrected, filtered, and paginated results.
+- Added the final shared SQL schema and GitHub Actions quality checks.
+- Imported and verified the schema locally on PostgreSQL 17 with 16 tables.
+- Executed the report repository against the real PostgreSQL database.
+
+Integration dependency:
+
 - Replace the temporary authentication dependency.
-- Confirm the late-attendance value and attendance threshold with the team.
-- Run integration tests using shared attendance records.
-- Complete review and integration in the later Scrum cycles.
+- Shimul's shared authentication implementation must provide the final
+  authenticated `ReportUser`; unauthenticated access currently returns 401.
 
 ## User story
 
 As a teacher or administrator, I want to filter and search attendance reports
 so that I can review the required records efficiently.
 
-## Sprint 1 goal
+## Feature development
 
-Define the API contract, validation rules, response fields, an initial
-calculation prototype, the data-access boundary, and initial automated tests.
-The concrete database and shared authentication adapters will be connected
-after the owning teammates merge those dependencies.
+Scrum 1 defined the contracts and calculations. Scrum 2 implemented the core
+workflow. Scrum 3 connects the final PostgreSQL schema, completes failure-case
+coverage, and prepares the feature for pull-request review.
 
 ## API contract
 
@@ -72,7 +79,7 @@ list and a clear message.
 ## Shared schema mapping
 
 - Department: `departments` joined through `students.department_id`.
-- Batch: `students.batch_year` and `course_offerings.batch_year`.
+- Batch: `students.batch` and `course_offerings.batch`.
 - Section/course: `course_offerings.section` and `course_offerings.course_id`.
 - Date range: `attendance_sessions.scheduled_start`.
 - Student identity: `students.id`, `student_number`, and `full_name`.
@@ -83,16 +90,25 @@ The repository must join `attendance_records -> attendance_sessions ->
 course_offerings -> students -> departments`, apply all filters before
 aggregation, and return the latest corrected record values.
 
-## Dependencies and blockers
+## Dependencies
 
 - Shimul: replace `get_current_report_user` with the shared current-user
   dependency.
-- Jemima/team database owner: implement `AttendanceReportRepository` using the
-  shared database session and attendance models.
-- Team decision: confirm whether late attendance earns 0.5 or another value.
-  This feature intentionally trusts the stored `attendance_value`.
-- Team decision: confirm whether the low-attendance threshold is globally 75%
-  or configured per course.
+- The final schema stores each session's `late_attendance_value`; the report
+  intentionally trusts the resulting `attendance_value` on each record.
+- The current low-attendance threshold is 75% and can later be moved to shared
+  configuration if the team changes the rule.
+
+## PostgreSQL setup
+
+Copy `.env.example` to `.env`, replace the password locally, and import the
+schema into a new empty `rfid_attendance` database:
+
+```powershell
+psql -U postgres -d rfid_attendance -f database/database_schema.sql
+```
+
+Never commit `.env`, database passwords, or local database files.
 
 ## Run tests
 
