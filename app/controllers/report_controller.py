@@ -4,8 +4,13 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.attendance_repository import AttendanceReportRepository
+from app.database import get_db
+from app.repositories.attendance_repository import (
+    AttendanceReportRepository,
+    PostgreSQLAttendanceReportRepository,
+)
 from app.schemas.report_schema import (
     AttendanceReportFilters,
     AttendanceReportResponse,
@@ -34,25 +39,24 @@ def get_current_report_user() -> ReportUser:
     """
 
     raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Shared authentication dependency is not connected yet.",
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication is required to access attendance reports.",
     )
 
 
-def get_attendance_report_repository() -> AttendanceReportRepository:
+def get_attendance_report_repository(
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> AttendanceReportRepository:
     """Provide the shared PostgreSQL attendance-report repository.
 
-    Returns:
-        The configured attendance-report repository.
+    Args:
+        session: Shared asynchronous PostgreSQL session.
 
-    Raises:
-        HTTPException: Until the shared repository is connected.
+    Returns:
+        A PostgreSQL attendance-report repository.
     """
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Shared attendance repository is not connected yet.",
-    )
+    return PostgreSQLAttendanceReportRepository(session)
 
 
 @router.get(

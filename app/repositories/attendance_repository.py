@@ -1,13 +1,11 @@
-"""Repository boundary used by attendance report generation.
-
-The concrete PostgreSQL repository will be connected after the shared database
-session and attendance models are merged. Keeping this boundary small prevents
-report business rules from leaking into controllers or database code.
-"""
+"""Repository implementations used by attendance report generation."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, time, timedelta
 from typing import Protocol
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.report_schema import AttendanceReportFilters
 
@@ -87,4 +85,108 @@ class InMemoryAttendanceReportRepository:
             and filters.start_date
             <= row.recorded_at.date()
             <= filters.end_date
+        ]
+
+
+class PostgreSQLAttendanceReportRepository:
+    """Read filtered attendance rows from the shared PostgreSQL database."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        """Store the database session used by this request.
+
+        Args:
+            session: Shared asynchronous SQLAlchemy session.
+        """
+
+        self._session = session
+
+    async def list_report_rows(
+        self,
+        filters: AttendanceReportFilters,
+    ) -> list[AttendanceReportRow]:
+        """Return effective attendance records matching every filter.
+
+        Args:
+            filters: Validated report filters.
+
+        Returns:
+            Filtered rows used by the report service.
+        """
+
+        statement = text(
+            """
+            SELECT
+                students.id AS student_id,
+                students.student_number,
+                students.full_name AS student_name,
+                attendance_records.status,
+                attendance_records.attendance_value,
+                attendance_records.recorded_at,
+                attendance_records.modified_at,
+                departments.code AS department,
+                course_offerings.batch,
+                course_offerings.section,
+                course_offerings.course_id
+            FROM attendance_records
+            JOIN students
+                ON students.id = attendance_records.student_id
+            JOIN departments
+                ON departments.id = students.department_id
+            JOIN attendance_sessions
+                ON attendance_sessions.id = attendance_records.session_id
+            JOIN course_offerings
+                ON course_offerings.id = attendance_sessions.offering_id
+            WHERE LOWER(departments.code) = LOWER(:department)
+                AND course_offerings.batch = :batch
+                AND LOWER(course_offerings.section) = LOWER(:section)
+                AND course_offerings.course_id = :course_id
+                AND (
+                    CAST(:student_id AS BIGINT) IS NULL
+                    OR students.id = CAST(:student_id AS BIGINT)
+                )
+                AND attendance_sessions.scheduled_start >= :start_at
+                AND attendance_sessions.scheduled_start < :end_at
+            ORDER BY
+                students.student_number,
+                attendance_sessions.scheduled_start
+            """
+        )
+        start_at = datetime.combine(
+            filters.start_date,
+            time.min,
+            tzinfo=UTC,
+        )
+        end_at = datetime.combine(
+            filters.end_date + timedelta(days=1),
+            time.min,
+            tzinfo=UTC,
+        )
+        result = await self._session.execute(
+            statement,
+            {
+                "department": filters.department,
+                "batch": filters.batch,
+                "section": filters.section,
+                "course_id": filters.course_id,
+                "student_id": filters.student_id,
+                "start_at": start_at,
+                "end_at": end_at,
+            },
+        )
+
+        return [
+            AttendanceReportRow(
+                student_id=row.student_id,
+                student_number=row.student_number,
+                student_name=row.student_name,
+                status=row.status,
+                attendance_value=float(row.attendance_value),
+                recorded_at=row.recorded_at,
+                modified_at=row.modified_at,
+                department=row.department,
+                batch=row.batch,
+                section=row.section,
+                course_id=row.course_id,
+            )
+            for row in result.mappings()
         ]

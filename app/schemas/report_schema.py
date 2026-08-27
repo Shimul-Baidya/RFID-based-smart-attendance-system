@@ -17,10 +17,10 @@ class AttendanceReportFilters(BaseModel):
         examples=["CSE"],
     )
     batch: int = Field(
-        ge=2000,
-        le=2100,
-        description="Student batch year.",
-        examples=[2023],
+        ge=1,
+        le=100,
+        description="Student batch number.",
+        examples=[22],
     )
     section: str = Field(
         min_length=1,
