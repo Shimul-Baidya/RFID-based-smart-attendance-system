@@ -3,6 +3,8 @@
 import asyncio
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient, Response
@@ -17,6 +19,7 @@ from app.main import app
 from app.repositories.attendance_repository import (
     AttendanceReportRow,
     InMemoryAttendanceReportRepository,
+    PostgreSQLAttendanceReportRepository,
 )
 from app.schemas.report_schema import AttendanceReportFilters
 from app.services.report_service import AttendanceReportService
@@ -27,7 +30,7 @@ def make_filters(**changes: object) -> AttendanceReportFilters:
 
     data = {
         "department": "CSE",
-        "batch": 2023,
+        "batch": 22,
         "section": "A",
         "course_id": 10,
         "start_date": date(2026, 8, 1),
@@ -70,10 +73,15 @@ def test_invalid_date_range_is_rejected() -> None:
         )
 
 
+def test_invalid_batch_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        make_filters(batch=2023)
+
+
 def test_missing_required_filter_is_rejected() -> None:
     with pytest.raises(ValidationError, match="department"):
         AttendanceReportFilters(
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
             start_date=date(2026, 8, 1),
@@ -182,7 +190,7 @@ def test_repository_returns_only_matching_records() -> None:
             1.0,
             now,
             department="CSE",
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
         ),
@@ -194,7 +202,7 @@ def test_repository_returns_only_matching_records() -> None:
             1.0,
             now,
             department="CSE",
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
         ),
@@ -206,7 +214,7 @@ def test_repository_returns_only_matching_records() -> None:
             1.0,
             datetime(2026, 7, 20, tzinfo=UTC),
             department="CSE",
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
         ),
@@ -234,7 +242,7 @@ def test_endpoint_returns_filtered_attendance_summary() -> None:
             1.0,
             now,
             department="CSE",
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
         ),
@@ -246,7 +254,7 @@ def test_endpoint_returns_filtered_attendance_summary() -> None:
             0.0,
             now,
             department="CSE",
-            batch=2023,
+            batch=22,
             section="A",
             course_id=10,
         ),
@@ -267,6 +275,45 @@ def test_endpoint_returns_filtered_attendance_summary() -> None:
     assert report["items"][0]["present"] == 1
     assert report["items"][0]["absent"] == 1
     assert report["items"][0]["attendance_percentage"] == 50.0
+
+
+def test_postgresql_repository_uses_validated_filters() -> None:
+    now = datetime(2026, 8, 23, tzinfo=UTC)
+    database_row = SimpleNamespace(
+        student_id=7,
+        student_number="22-001",
+        student_name="Student Seven",
+        status="present",
+        attendance_value=1.0,
+        recorded_at=now,
+        modified_at=None,
+        department="CSE",
+        batch=22,
+        section="A",
+        course_id=10,
+    )
+    result = MagicMock()
+    result.mappings.return_value = [database_row]
+    session = AsyncMock()
+    session.execute.return_value = result
+    repository = PostgreSQLAttendanceReportRepository(session)
+
+    rows = asyncio.run(repository.list_report_rows(make_filters(student_id=7)))
+
+    parameters = session.execute.await_args.args[1]
+    assert parameters["department"] == "CSE"
+    assert parameters["batch"] == 22
+    assert parameters["student_id"] == 7
+    assert rows[0].student_number == "22-001"
+
+
+def test_unauthenticated_user_is_rejected() -> None:
+    response = asyncio.run(request_report())
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == (
+        "Authentication is required to access attendance reports."
+    )
 
 
 def test_student_cannot_access_report_endpoint() -> None:
@@ -326,7 +373,7 @@ async def request_report() -> Response:
             "/reports/attendance",
             params={
                 "department": "CSE",
-                "batch": 2023,
+                "batch": 22,
                 "section": "A",
                 "course_id": 10,
                 "start_date": "2026-08-01",
