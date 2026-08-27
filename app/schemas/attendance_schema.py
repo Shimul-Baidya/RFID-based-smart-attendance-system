@@ -60,7 +60,7 @@ class AttendanceScanResponse(BaseModel):
     attendance_id: int = Field(gt=0)
     student_id: int = Field(gt=0)
     session_id: int = Field(gt=0)
-    course_id: int = Field(ge=100, le=999)
+    course_id: int = Field(gt=0)
     status: Literal["present", "late"]
     duplicate: bool
     recorded_at: datetime

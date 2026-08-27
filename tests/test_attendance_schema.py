@@ -78,12 +78,12 @@ def test_valid_scan_response() -> None:
     assert response.duplicate is False
 
 
-def test_invalid_course_id_is_rejected() -> None:
+def test_non_positive_course_id_is_rejected() -> None:
     """
-    Test that a non-three-digit course ID is rejected.
+    Test that a non-positive course ID is rejected.
 
-    Returns:
-        None.
+        Returns:
+            None.
     """
     with pytest.raises(ValidationError):
         AttendanceScanResponse(
@@ -91,7 +91,7 @@ def test_invalid_course_id_is_rejected() -> None:
             attendance_id=1,
             student_id=25,
             session_id=101,
-            course_id=40,
+            course_id=0,
             status="present",
             duplicate=False,
             recorded_at=datetime.now(timezone.utc),
