@@ -1,42 +1,55 @@
-from datetime import datetime
-
 from sqlalchemy import (
+    Boolean,
     Column,
-    DateTime,
     ForeignKey,
-    Integer,
     String,
+    Text,
+    TIMESTAMP,
+    BigInteger,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
-# TODO: uncomment once app/database (Base) is created by the team
+# TODO(db-setup): uncomment once app/database provides Base
 # from app.database import Base
 
 
-class AttendanceNotification:  # TODO: change to (Base) once Base is available
-    __tablename__ = "attendance_notifications"
+class Notification:  # TODO(db-setup): change to (Base)
+    __tablename__ = "notifications"
 
-    id = Column(Integer, primary_key=True)
-    student_id = Column(
-        Integer,
-        ForeignKey("students.id"),  # TODO: confirm table name once student model exists
+    id = Column(BigInteger, primary_key=True)
+    user_id = Column(
+        BigInteger,
+        ForeignKey("users.id"),
         nullable=False,
     )
-    attendance_id = Column(
-        Integer,
-        ForeignKey("attendance_records.id"),  # TODO: confirm table name
-        nullable=False,
-        unique=True,
+    attendance_record_id = Column(
+        BigInteger,
+        ForeignKey("attendance_records.id"),
+        nullable=True,
     )
-    course_name = Column(String(100), nullable=False)
-    class_time = Column(String(50), nullable=False)
-    class_date = Column(DateTime, nullable=False)
-    punch_time = Column(DateTime, nullable=False)
-    attendance_status = Column(String(20), nullable=False)
+    correction_request_id = Column(
+        BigInteger,
+        ForeignKey("attendance_correction_requests.id"),
+        nullable=True,
+    )
+    report_export_id = Column(
+        BigInteger,
+        ForeignKey("report_exports.id"),
+        nullable=True,
+    )
+    notification_type = Column(String(40), nullable=False)
+    title = Column(String(160), nullable=False)
+    message = Column(Text, nullable=False)
+    deduplication_key = Column(String(160), nullable=True)
+    is_read = Column(Boolean, nullable=False, default=False)
+    email_status = Column(
+        String(20),
+        nullable=False,
+        default="not_requested",
+    )
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        TIMESTAMP(timezone=True),
         nullable=False,
+        server_default=func.now(),
     )
-
-    student = relationship("Student")
+    read_at = Column(TIMESTAMP(timezone=True), nullable=True)

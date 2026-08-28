@@ -23,46 +23,54 @@ async def create_attendance_notification(
 ) -> NotificationResponse:
     """Create a confirmation notification for a successful RFID punch.
 
-    Ensures only one notification is created per attendance record,
-    so no duplicate notification is sent for the same class.
+    Uses `deduplication_key` to ensure only one notification is
+    created per attendance event, matching the unique constraint
+    on the shared `notifications` table.
     """
-    for existing in _notification_store.values():
-        if existing["attendance_id"] == notification_data.attendance_id:
-            raise DuplicateNotificationError(
-                f"Notification already exists for attendance "
-                f"{notification_data.attendance_id}"
-            )
+    if notification_data.deduplication_key is not None:
+        for existing in _notification_store.values():
+            if (
+                existing["deduplication_key"]
+                == notification_data.deduplication_key
+            ):
+                raise DuplicateNotificationError(
+                    "A notification with this deduplication key "
+                    "already exists"
+                )
 
     new_id = next(_id_counter)
     record = {
         "id": new_id,
-        "created_at": datetime_now(),
+        "is_read": False,
+        "email_status": "not_requested",
+        "created_at": _now(),
+        "read_at": None,
         **notification_data.model_dump(),
     }
     _notification_store[new_id] = record
 
     logger.info(
-        "Created attendance notification %s for student %s",
+        "Created notification %s for user %s",
         new_id,
-        notification_data.student_id,
+        notification_data.user_id,
     )
 
     return NotificationResponse.model_validate(record)
 
 
-async def get_student_notifications(
-    student_id: int,
+async def get_user_notifications(
+    user_id: int,
 ) -> list[NotificationResponse]:
-    """Return all attendance notifications for a student's dashboard."""
+    """Return all notifications for a user's dashboard."""
     results = [
         NotificationResponse.model_validate(record)
         for record in _notification_store.values()
-        if record["student_id"] == student_id
+        if record["user_id"] == user_id
     ]
     return results
 
 
-def datetime_now():
+def _now():
     """Small wrapper so it's easy to mock in tests later."""
     from datetime import datetime
 
