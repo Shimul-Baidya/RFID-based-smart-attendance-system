@@ -9,32 +9,33 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql import func
 
-# TODO(db-setup): uncomment once app/database provides Base
-# from app.database import Base
+from app.database import Base
 
 
-class Notification:  # TODO(db-setup): change to (Base)
+class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(BigInteger, primary_key=True)
     user_id = Column(
         BigInteger,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", use_alter=True),
         nullable=False,
     )
     attendance_record_id = Column(
         BigInteger,
-        ForeignKey("attendance_records.id"),
+        ForeignKey("attendance_records.id", use_alter=True),
         nullable=True,
     )
     correction_request_id = Column(
         BigInteger,
-        ForeignKey("attendance_correction_requests.id"),
+        ForeignKey(
+            "attendance_correction_requests.id", use_alter=True
+        ),
         nullable=True,
     )
     report_export_id = Column(
         BigInteger,
-        ForeignKey("report_exports.id"),
+        ForeignKey("report_exports.id", use_alter=True),
         nullable=True,
     )
     notification_type = Column(String(40), nullable=False)
