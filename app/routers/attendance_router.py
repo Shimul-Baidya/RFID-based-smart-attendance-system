@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_database
+from app.database import get_db
 from app.schemas.attendance_schema import (
     AttendanceScanRequest,
     AttendanceScanResponse,
@@ -24,7 +24,7 @@ router = APIRouter(
     tags=["Attendance"],
 )
 
-DatabaseSession = Annotated[Session, Depends(get_database)]
+DatabaseSession = Annotated[Session, Depends(get_db)]
 
 
 @router.post(

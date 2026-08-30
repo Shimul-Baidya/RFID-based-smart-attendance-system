@@ -1,22 +1,55 @@
 """Create and configure the FastAPI application."""
 
-from fastapi import FastAPI
+from typing import Annotated
 
+from fastapi import Depends, FastAPI
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from app.database import get_db
 from app.routers.attendance_router import router as attendance_router
 
 app = FastAPI(
-    title="RFID-Based Smart Attendance System",
+    title="RFID Attendance System API",
+    description="Backend API for the RFID-Based Smart Attendance System",
     version="1.0.0",
 )
 
 app.include_router(attendance_router)
+DatabaseSession = Annotated[Session, Depends(get_db)]
 
-
-@app.get("/health", tags=["System"])
-def health_check() -> dict[str, str]:
-    """Return the current API health status.
+@app.get("/")
+def read_root() -> dict[str, str]:
+    """Return the API welcome message.
 
     Returns:
-        A message confirming that the API is running.
+        A welcome message for the attendance-system API.
     """
-    return {"status": "healthy"}
+    return {"message": "Welcome to the RFID Attendance System API"}
+
+
+@app.get("/health")
+def health_check(
+    database: DatabaseSession,
+) -> dict[str, str]:
+    """Return the application and database health status.
+
+    Args:
+        database: Active SQLAlchemy database session.
+
+    Returns:
+        Current API and database connection status.
+    """
+    try:
+        database.execute(text("SELECT 1"))
+        return {
+            "status": "ok",
+            "database": "connected",
+        }
+    except SQLAlchemyError as error:
+        return {
+            "status": "error",
+            "database": "disconnected",
+            "details": str(error),
+        }

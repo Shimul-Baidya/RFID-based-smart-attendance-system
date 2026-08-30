@@ -1,1 +1,1 @@
-# for making app a package
+# Makes the tests directory a Python package

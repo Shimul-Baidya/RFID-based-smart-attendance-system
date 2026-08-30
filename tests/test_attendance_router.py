@@ -8,7 +8,7 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.database import get_database
+from app.database import get_db
 from app.routers import attendance_router
 from app.schemas.attendance_schema import AttendanceScanResponse
 from app.services.attendance_service import (
@@ -36,7 +36,7 @@ def client(database: MagicMock) -> TestClient:
         """Return the mocked database session."""
         return database
 
-    application.dependency_overrides[get_database] = override_database
+    application.dependency_overrides[get_db] = override_database
 
     return TestClient(application)
 
@@ -161,4 +161,4 @@ def test_invalid_scan_request_returns_unprocessable_entity(
         },
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
