@@ -2,7 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, Depends
 from app.database import get_db
-from app.routers import auth, users
+from app.routers import auth, users, dashboard
 
 app = FastAPI(
     title="RFID Attendance System API",
@@ -12,6 +12,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(dashboard.router)
 
 @app.get("/")
 def read_root():
