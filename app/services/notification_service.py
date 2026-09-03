@@ -4,15 +4,20 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification_model import Notification
+from app.schemas.email_schema import AttendanceEmailData
 from app.schemas.notification_schema import (
     NotificationCreate,
     NotificationResponse,
 )
+from app.services.email_service import send_attendance_email
 from app.utils.notification_exceptions import (
     DuplicateNotificationError,
+    NotificationDeliveryError,
 )
 
 logger = logging.getLogger(__name__)
+
+EMAIL_TRIGGER_TYPES = {"attendance_updated", "low_attendance"}
 
 
 async def create_attendance_notification(
@@ -77,3 +82,35 @@ async def get_user_notifications(
     return [
         NotificationResponse.model_validate(n) for n in notifications
     ]
+
+
+async def create_and_notify(
+    db: AsyncSession,
+    notification_data: NotificationCreate,
+    email_data: AttendanceEmailData | None = None,
+) -> NotificationResponse:
+    """Create a notification and send an email if the type requires it.
+
+    Only 'attendance_updated' (used for absent marks) and
+    'low_attendance' notification types trigger an email, per SRS 3.1.7.
+    If email sending fails, the in-app notification is still kept
+    and visible on the dashboard.
+    """
+    notification = await create_attendance_notification(
+        db, notification_data
+    )
+
+    if (
+        notification_data.notification_type in EMAIL_TRIGGER_TYPES
+        and email_data is not None
+    ):
+        try:
+            await send_attendance_email(email_data)
+        except NotificationDeliveryError:
+            logger.warning(
+                "Email failed for notification %s, dashboard "
+                "notification remains visible",
+                notification.id,
+            )
+
+    return notification

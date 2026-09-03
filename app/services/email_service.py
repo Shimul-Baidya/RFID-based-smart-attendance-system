@@ -2,10 +2,13 @@ import logging
 import os
 
 import aiosmtplib
+from dotenv import load_dotenv
 from email.message import EmailMessage
 
 from app.schemas.email_schema import AttendanceEmailData
 from app.utils.notification_exceptions import NotificationDeliveryError
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
