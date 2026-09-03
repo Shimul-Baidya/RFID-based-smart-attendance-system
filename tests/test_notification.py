@@ -13,7 +13,6 @@ from app.utils.notification_exceptions import (
     NotificationError,
 )
 
-
 class TestNotificationCreateSchema:
     """Tests for the NotificationCreate request schema."""
 
@@ -112,3 +111,4 @@ class TestNotificationExceptions:
     def test_notification_error_can_be_caught_as_exception(self) -> None:
         with pytest.raises(Exception):
             raise NotificationError("Generic notification failure")
+
