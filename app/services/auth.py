@@ -22,6 +22,23 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
+    """
+    Dependency to retrieve the currently authenticated user from the request token.
+
+    This function extracts the JWT from the ``Authorization`` header, decodes it
+    using the application's secret key, and retrieves the user record from the
+    database. It is used to protect routes that require authentication.
+
+    Args:
+        token (str): The JWT access token provided in the request header.
+        db (Session): The database session dependency.
+
+    Returns:
+        User: The authenticated user's database record.
+
+    Raises:
+        HTTPException: 401 Unauthorized if the token is invalid, expired, or the user does not exist.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
