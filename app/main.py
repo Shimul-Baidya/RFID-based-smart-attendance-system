@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.routers import auth, users, dashboard
+from app.routers import auth, users
 from app.routers.attendance_router import router as attendance_router
 
 app = FastAPI(
@@ -19,7 +19,6 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(dashboard.router)
 app.include_router(attendance_router)
 DatabaseSession = Annotated[Session, Depends(get_db)]
 

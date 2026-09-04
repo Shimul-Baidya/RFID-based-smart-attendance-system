@@ -22,10 +22,27 @@ def db_session():
     """
     Creates a fresh database on every test case.
     """
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, tables=[User.__table__])
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=engine, tables=[User.__table__])
+
+@pytest.fixture
+def client(db_session):
+    from app.main import app
+    from app.database import get_db
+
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    from fastapi.testclient import TestClient
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
