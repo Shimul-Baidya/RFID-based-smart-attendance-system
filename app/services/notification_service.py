@@ -1,3 +1,5 @@
+"""Service for creating attendance notifications and triggering emails."""
+
 import logging
 
 from sqlalchemy import select
@@ -94,23 +96,39 @@ async def create_and_notify(
     Only 'attendance_updated' (used for absent marks) and
     'low_attendance' notification types trigger an email, per SRS 3.1.7.
     If email sending fails, the in-app notification is still kept
-    and visible on the dashboard.
+    and visible on the dashboard; email_status is updated to reflect
+    delivery outcome.
     """
     notification = await create_attendance_notification(
         db, notification_data
     )
 
-    if (
+    should_email = (
         notification_data.notification_type in EMAIL_TRIGGER_TYPES
         and email_data is not None
-    ):
+    )
+
+    if should_email:
+        result = await db.execute(
+            select(Notification).where(Notification.id == notification.id)
+        )
+        db_notification = result.scalar_one()
+        db_notification.email_status = "pending"
+        await db.commit()
+
         try:
             await send_attendance_email(email_data)
+            db_notification.email_status = "sent"
         except NotificationDeliveryError:
             logger.warning(
                 "Email failed for notification %s, dashboard "
                 "notification remains visible",
                 notification.id,
             )
+            db_notification.email_status = "failed"
+
+        await db.commit()
+        await db.refresh(db_notification)
+        notification = NotificationResponse.model_validate(db_notification)
 
     return notification

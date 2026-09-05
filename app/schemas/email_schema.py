@@ -1,3 +1,5 @@
+"""Schemas for composing attendance-update emails."""
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -10,4 +12,4 @@ class AttendanceEmailData(BaseModel):
     class_date: str
     attendance_status: str
     instructions: str | None = None
-    
+   

@@ -1,9 +1,11 @@
+"""Service for sending attendance-update emails via Gmail SMTP."""
+
 import logging
 import os
+from email.message import EmailMessage
 
 import aiosmtplib
 from dotenv import load_dotenv
-from email.message import EmailMessage
 
 from app.schemas.email_schema import AttendanceEmailData
 from app.utils.notification_exceptions import NotificationDeliveryError
@@ -67,3 +69,5 @@ async def send_attendance_email(data: AttendanceEmailData) -> None:
         raise NotificationDeliveryError(
             f"Failed to send email to {data.student_email}"
         ) from exc
+
+    
