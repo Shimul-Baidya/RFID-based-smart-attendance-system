@@ -6,8 +6,10 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from fastapi import FastAPI, Depends
 
 from app.database import get_db
+from app.routers import dashboard_router
 from app.routers import auth, users
 from app.routers.attendance_router import router as attendance_router
 
@@ -16,6 +18,8 @@ app = FastAPI(
     description="Backend API for the RFID-Based Smart Attendance System",
     version="1.0.0",
 )
+
+app.include_router(dashboard_router.router)
 
 app.include_router(auth.router)
 app.include_router(users.router)
