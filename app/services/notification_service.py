@@ -1,38 +1,33 @@
+"""Service for creating and retrieving attendance notifications."""
+
 import logging
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.notification_model import Notification
 from app.schemas.notification_schema import (
     NotificationCreate,
     NotificationResponse,
 )
-from app.utils.notification_exceptions import (
-    DuplicateNotificationError,
-)
+from app.utils.notification_exceptions import DuplicateNotificationError
 
 logger = logging.getLogger(__name__)
 
 
-async def create_attendance_notification(
-    db: AsyncSession,
+def create_attendance_notification(
+    db: Session,
     notification_data: NotificationCreate,
 ) -> NotificationResponse:
-    """Create a confirmation notification for a successful RFID punch.
-
-    Uses `deduplication_key` to ensure only one notification is
-    created per attendance event, matching the unique constraint
-    on the shared `notifications` table.
-    """
+    """Create a confirmation notification for a successful RFID punch."""
     if notification_data.deduplication_key is not None:
-        result = await db.execute(
-            select(Notification).where(
+        existing = (
+            db.query(Notification)
+            .filter(
                 Notification.deduplication_key
                 == notification_data.deduplication_key
             )
+            .first()
         )
-        existing = result.scalar_one_or_none()
 
         if existing is not None:
             raise DuplicateNotificationError(
@@ -50,8 +45,8 @@ async def create_attendance_notification(
     )
 
     db.add(notification)
-    await db.commit()
-    await db.refresh(notification)
+    db.commit()
+    db.refresh(notification)
 
     logger.info(
         "Created notification %s for user %s",
@@ -62,17 +57,17 @@ async def create_attendance_notification(
     return NotificationResponse.model_validate(notification)
 
 
-async def get_user_notifications(
-    db: AsyncSession,
+def get_user_notifications(
+    db: Session,
     user_id: int,
 ) -> list[NotificationResponse]:
     """Return all notifications for a user's dashboard."""
-    result = await db.execute(
-        select(Notification)
-        .where(Notification.user_id == user_id)
+    notifications = (
+        db.query(Notification)
+        .filter(Notification.user_id == user_id)
         .order_by(Notification.created_at.desc())
+        .all()
     )
-    notifications = result.scalars().all()
 
     return [
         NotificationResponse.model_validate(n) for n in notifications

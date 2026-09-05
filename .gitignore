@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# others
+cloudboard
+SWE_404_RFID_Attendance_SRS.md
+sphinx_guide.md
